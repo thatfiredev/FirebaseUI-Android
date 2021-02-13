@@ -2,6 +2,7 @@ package com.firebase.ui.firestore.paging;
 
 import android.util.Log;
 
+import com.firebase.ui.firestore.ClassSnapshotParser;
 import com.firebase.ui.firestore.SnapshotParser;
 import com.google.firebase.firestore.DocumentSnapshot;
 
@@ -10,12 +11,15 @@ import androidx.annotation.Nullable;
 import androidx.arch.core.util.Function;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleObserver;
+import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.OnLifecycleEvent;
 import androidx.lifecycle.Transformations;
 import androidx.paging.PagedList;
 import androidx.paging.PagedListAdapter;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 /**
@@ -28,16 +32,7 @@ public abstract class FirestorePagingAdapter<T, VH extends RecyclerView.ViewHold
         implements LifecycleObserver {
 
     private static final String TAG = "FirestorePagingAdapter";
-    /*
-        LiveData created via Transformation do not have a value until an Observer is attached.
-        We attach this empty observer so that our getValue() calls return non-null later.
-    */
-    private final Observer<FirestoreDataSource> mDataSourceObserver = new Observer<FirestoreDataSource>() {
-        @Override
-        public void onChanged(@Nullable FirestoreDataSource source) {
 
-        }
-    };
     //Error observer to determine last occurred Error
     private final Observer<Exception> mErrorObserver = new Observer<Exception>() {
         @Override
@@ -67,12 +62,13 @@ public abstract class FirestorePagingAdapter<T, VH extends RecyclerView.ViewHold
                     submitList(snapshots);
                 }
             };
-    private FirestorePagingOptions<T> mOptions;
+
     private SnapshotParser<T> mParser;
+    private LifecycleOwner mOwner;
     private LiveData<PagedList<DocumentSnapshot>> mSnapshots;
     private LiveData<LoadingState> mLoadingState;
     private LiveData<Exception> mException;
-    private LiveData<FirestoreDataSource> mDataSource;
+    private MutableLiveData<FirestoreDataSource> mDataSource;
 
     /**
      * Construct a new FirestorePagingAdapter from the given {@link FirestorePagingOptions}.
@@ -80,16 +76,45 @@ public abstract class FirestorePagingAdapter<T, VH extends RecyclerView.ViewHold
     public FirestorePagingAdapter(@NonNull FirestorePagingOptions<T> options) {
         super(options.getDiffCallback());
 
-        mOptions = options;
+        initWithFirebaseOptions(options);
+    }
 
-        init();
+    public FirestorePagingAdapter(@Nullable LifecycleOwner owner, @NonNull Class<T> modelClass) {
+        this(owner, new ClassSnapshotParser<>(modelClass));
+    }
+
+    public FirestorePagingAdapter(@Nullable LifecycleOwner owner,
+                                  @NonNull Class<T> modelClass,
+                                  @NonNull DiffUtil.ItemCallback<DocumentSnapshot> diffCallback) {
+        this(owner, new ClassSnapshotParser<>(modelClass), diffCallback);
+    }
+
+    public FirestorePagingAdapter(@Nullable LifecycleOwner owner, @NonNull SnapshotParser<T> parser) {
+        super(new DefaultSnapshotDiffCallback<>(parser));
+        init(owner, parser);
+    }
+
+    public FirestorePagingAdapter(@Nullable LifecycleOwner owner,
+                                  @NonNull SnapshotParser<T> parser,
+                                  @NonNull DiffUtil.ItemCallback<DocumentSnapshot> diffCallback) {
+        super(diffCallback);
+        init(owner, parser);
     }
 
     /**
      * Initializes Snapshots and LiveData
      */
-    private void init() {
-        mSnapshots = mOptions.getData();
+    private void init(@Nullable LifecycleOwner owner, @NonNull SnapshotParser<T> parser) {
+        mParser = parser;
+        mOwner = owner;
+        if (mOwner != null) {
+            mOwner.getLifecycle().addObserver(this);
+        }
+        mDataSource = new MutableLiveData<>();
+    }
+
+    private void initWithFirebaseOptions(@NonNull FirestorePagingOptions<T> options) {
+        mSnapshots = options.getData();
 
         mLoadingState = Transformations.switchMap(mSnapshots,
                 new Function<PagedList<DocumentSnapshot>, LiveData<LoadingState>>() {
@@ -97,14 +122,6 @@ public abstract class FirestorePagingAdapter<T, VH extends RecyclerView.ViewHold
                     public LiveData<LoadingState> apply(PagedList<DocumentSnapshot> input) {
                         FirestoreDataSource dataSource = (FirestoreDataSource) input.getDataSource();
                         return dataSource.getLoadingState();
-                    }
-                });
-
-        mDataSource = Transformations.map(mSnapshots,
-                new Function<PagedList<DocumentSnapshot>, FirestoreDataSource>() {
-                    @Override
-                    public FirestoreDataSource apply(PagedList<DocumentSnapshot> input) {
-                        return (FirestoreDataSource) input.getDataSource();
                     }
                 });
 
@@ -116,12 +133,18 @@ public abstract class FirestorePagingAdapter<T, VH extends RecyclerView.ViewHold
                         return dataSource.getLastError();
                     }
                 });
+        init(options.getOwner(), options.getParser());
+    }
 
-        mParser = mOptions.getParser();
-
-        if (mOptions.getOwner() != null) {
-            mOptions.getOwner().getLifecycle().addObserver(this);
-        }
+    @Override
+    public void submitList(PagedList<DocumentSnapshot> pagedList) {
+        FirestoreDataSource source = (FirestoreDataSource) pagedList.getDataSource();
+        mLoadingState = source.getLoadingState();
+        mException = source.getLastError();
+        mDataSource.postValue(source);
+        mLoadingState.observeForever(mStateObserver);
+        mException.observeForever(mErrorObserver);
+        super.submitList(pagedList);
     }
 
     /**
@@ -155,17 +178,21 @@ public abstract class FirestorePagingAdapter<T, VH extends RecyclerView.ViewHold
      * re-constructing the entire adapter.
      */
     public void updateOptions(@NonNull FirestorePagingOptions<T> options) {
-        mOptions = options;
 
         // Tear down old options
-        boolean hasObservers = mSnapshots.hasObservers();
-        if (mOptions.getOwner() != null) {
-            mOptions.getOwner().getLifecycle().removeObserver(this);
+        boolean hasObservers;
+        if (mSnapshots != null) {
+            hasObservers = mSnapshots.hasObservers();
+        } else {
+            hasObservers = false;
+        }
+        if (mOwner != null) {
+            mOwner.getLifecycle().removeObserver(this);
         }
         stopListening();
 
         // Reinit Options
-        init();
+        initWithFirebaseOptions(options);
 
         if (hasObservers) {
             startListening();
@@ -177,10 +204,11 @@ public abstract class FirestorePagingAdapter<T, VH extends RecyclerView.ViewHold
      */
     @OnLifecycleEvent(Lifecycle.Event.ON_START)
     public void startListening() {
-        mSnapshots.observeForever(mDataObserver);
-        mLoadingState.observeForever(mStateObserver);
-        mDataSource.observeForever(mDataSourceObserver);
-        mException.observeForever(mErrorObserver);
+        if (mSnapshots != null) {
+            mSnapshots.observeForever(mDataObserver);
+            mLoadingState.observeForever(mStateObserver);
+            mException.observeForever(mErrorObserver);
+        }
     }
 
     /**
@@ -189,10 +217,15 @@ public abstract class FirestorePagingAdapter<T, VH extends RecyclerView.ViewHold
      */
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     public void stopListening() {
-        mSnapshots.removeObserver(mDataObserver);
-        mLoadingState.removeObserver(mStateObserver);
-        mDataSource.removeObserver(mDataSourceObserver);
-        mException.removeObserver(mErrorObserver);
+        if (mSnapshots != null) {
+            mSnapshots.removeObserver(mDataObserver);
+        }
+        if (mLoadingState != null) {
+            mLoadingState.removeObserver(mStateObserver);
+        }
+        if (mException != null) {
+            mException.removeObserver(mErrorObserver);
+        }
     }
 
     @Override
