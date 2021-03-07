@@ -15,7 +15,7 @@ rootProject.buildFileName = 'build.gradle.kts'
 include(
         ":app", ":library",
 
-        ":auth",
+        ":auth", ":auth-compose",
         ":common", ":firestore", ":database",
         ":storage",
 

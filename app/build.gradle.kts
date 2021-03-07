@@ -4,6 +4,9 @@
 android {
     defaultConfig {
         multiDexEnabled = true
+
+        // Set to 21 to support Compose samples
+        minSdk = 21
     }
 
     buildTypes {
@@ -36,6 +39,7 @@ dependencies {
     implementation(Config.Libs.Androidx.multidex)
 
     implementation(project(":auth"))
+    implementation(project(":auth-compose"))
     implementation(project(":firestore"))
     implementation(project(":database"))
     implementation(project(":storage"))
