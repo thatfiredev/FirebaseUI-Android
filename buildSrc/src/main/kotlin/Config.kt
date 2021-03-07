@@ -41,6 +41,22 @@ object Config {
             const val recyclerView = "androidx.recyclerview:recyclerview:1.1.0"
 
             const val design = "com.google.android.material:material:1.2.1"
+
+
+            object Compose {
+                const val composeVersion = "1.0.0-beta01"
+                const val ui = "androidx.compose.ui:ui:$composeVersion"
+                // Tooling support (Previews, etc.)
+                const val ui_tooling = "androidx.compose.ui:ui-tooling:$composeVersion"
+                // Foundation (Border, Background, Box, Image, Scroll, shapes, animations, etc.)
+                const val foundation = "androidx.compose.foundation:foundation:$composeVersion"
+                // Material Design
+                const val material = "androidx.compose.material:material:$composeVersion"
+                // Integration with activities
+                const val activity = "androidx.activity:activity-compose:1.3.0-alpha03"
+                // Integration with ViewModels
+                const val viewmodel = "androidx.lifecycle:lifecycle-viewmodel-compose:1.0.0-alpha02"
+            }
         }
 
         object Firebase {
