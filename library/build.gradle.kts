@@ -1,7 +1,7 @@
 tasks.named("check").configure { dependsOn("testAll", "prepareArtifacts") }
 
 android {
-    lintOptions {
+    lint {
         isAbortOnError = false
     }
 }

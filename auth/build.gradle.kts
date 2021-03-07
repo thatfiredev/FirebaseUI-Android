@@ -1,5 +1,3 @@
-import com.android.build.gradle.internal.dsl.TestOptions
-
 android {
     buildTypes {
         named("release").configure {
@@ -8,7 +6,7 @@ android {
         }
     }
 
-    lintOptions {
+    lint {
         disable("UnusedQuantity")
         disable("UnknownNullness")  // TODO fix in future PR
         disable("TypographyQuotes") // Straight versus directional quotes
@@ -19,9 +17,9 @@ android {
     }
 
     testOptions {
-        unitTests(closureOf<TestOptions.UnitTestOptions> {
+        unitTests {
             isIncludeAndroidResources = true
-        })
+        }
     }
 }
 

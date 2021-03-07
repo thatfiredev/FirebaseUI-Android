@@ -88,7 +88,7 @@ fun Project.configureAndroid() {
             minSdkVersion(Config.SdkVersions.min)
             targetSdkVersion(Config.SdkVersions.target)
 
-            versionName = Config.version
+            buildConfigField("String", "VERSION_NAME", "\"${Config.version}\"")
             versionCode = 1
 
             resourcePrefix("fui_")
@@ -132,7 +132,7 @@ fun Project.configureQuality() {
 
 fun Project.setupPublishing() {
     val sourcesJar = tasks.register<Jar>("sourcesJar") {
-        classifier = "sources"
+        archiveClassifier.set("sources")
         from(project.the<BaseExtension>().sourceSets["main"].java.srcDirs)
     }
 
@@ -141,7 +141,8 @@ fun Project.setupPublishing() {
         classpath += files(project.the<BaseExtension>().bootClasspath)
 
         project.the<LibraryExtension>().libraryVariants.configureEach {
-            dependsOn(assemble)
+            dependsOn(assembleProvider)
+            // TODO 07.03.2021: Migrate to lazy task API
             classpath += files((javaCompiler as AbstractCompile).classpath)
         }
 
@@ -151,7 +152,7 @@ fun Project.setupPublishing() {
 
     val javadocJar = tasks.register<Jar>("javadocJar") {
         dependsOn(javadoc)
-        classifier = "javadoc"
+        archiveClassifier.set("javadoc")
         from(javadoc.get().destinationDir)
     }
 
