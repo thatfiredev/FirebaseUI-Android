@@ -1,4 +1,8 @@
 android {
+    defaultConfig {
+        minSdkVersion(Config.SdkVersions.min_compose)
+    }
+
     buildTypes {
         named("release").configure {
             isMinifyEnabled = false

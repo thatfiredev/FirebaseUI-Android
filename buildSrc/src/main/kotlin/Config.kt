@@ -2,16 +2,17 @@ object Config {
     const val version = "7.2.0-SNAPSHOT"
     val submodules = listOf("auth", "auth-compose", "common", "firestore", "database", "storage")
 
-    private const val kotlinVersion = "1.4.30"
+    private const val kotlinVersion = "1.4.31"
 
     object SdkVersions {
         const val compile = 29
         const val target = 29
         const val min = 16
+        const val min_compose = 21
     }
 
     object Plugins {
-        const val android = "com.android.tools.build:gradle:7.0.0-alpha08"
+        const val android = "com.android.tools.build:gradle:7.0.0-alpha09"
         const val kotlin = "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
         const val google = "com.google.gms:google-services:4.3.3"
 
@@ -44,7 +45,7 @@ object Config {
 
 
             object Compose {
-                const val composeVersion = "1.0.0-beta01"
+                const val composeVersion = "1.0.0-beta02"
                 const val ui = "androidx.compose.ui:ui:$composeVersion"
                 // Tooling support (Previews, etc.)
                 const val ui_tooling = "androidx.compose.ui:ui-tooling:$composeVersion"
