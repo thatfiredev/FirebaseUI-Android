@@ -101,7 +101,15 @@ fun Project.configureAndroid() {
                     "IconExpectedSize",
                     "InvalidPackage", // Firestore uses GRPC which makes lint mad
                     "NewerVersionAvailable", "GradleDependency", // For reproducible builds
-                    "SelectableText", "SyntheticAccessor" // We almost never care about this
+                    "SelectableText", "SyntheticAccessor", // We almost never care about this
+                    "MediaCapabilities", // TODO: 13.03.21 Figure this one out. No clue where it comes from
+                    "NonConstantResourceId", // We're stuck with ButterKnife so we need this...
+                    "ConvertToWebp", // The Firebase auth logo hasn't been converted to WebP yet
+                    "RtlHardcoded", "Bidirectional Text", "Internationalization", // There are a few lint issues we need to fix upstream
+                    "IntentFilterExportedReceiver",
+                    "UnusedResources",
+                    "VectorDrawableCompat", // This seems to be a false positive after updating to AGP 7
+                    "AppLinkUrlError"
             )
 
             isCheckAllWarnings = true

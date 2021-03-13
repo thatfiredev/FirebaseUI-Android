@@ -305,7 +305,9 @@ public class AuthUITest {
                 .setForceSameDevice()
                 .build();
 
-        assertThat(config.getParams().getParcelable(ExtraConstants.ACTION_CODE_SETTINGS))
+        ActionCodeSettings actualActionCodeSettings = config.getParams()
+                .getParcelable(ExtraConstants.ACTION_CODE_SETTINGS);
+        assertThat(actualActionCodeSettings)
                 .isEqualTo(actionCodeSettings);
         assertThat(config.getParams().getBoolean(ExtraConstants.FORCE_SAME_DEVICE))
                 .isEqualTo(true);

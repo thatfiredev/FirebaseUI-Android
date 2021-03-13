@@ -14,6 +14,7 @@
 
 package com.firebase.uidemo.auth;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -361,6 +362,8 @@ public class AuthUiActivity extends AppCompatActivity
         startActivity(SignedInActivity.createIntent(this, response));
     }
 
+    // TODO: 13.03.21 Revert this! We have set minSDK to 21 for Compose development
+    @SuppressLint("ObsoleteSdkInt")
     @OnClick({R.id.default_theme, R.id.purple_theme, R.id.green_theme, R.id.dark_theme})
     public void toggleDarkTheme() {
         int mode = mDarkTheme.isChecked() ?
