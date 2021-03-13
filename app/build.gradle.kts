@@ -38,6 +38,7 @@ dependencies {
     implementation(Config.Libs.Androidx.design)
     implementation(Config.Libs.Androidx.multidex)
 
+    androidTestImplementation(platform(Config.Libs.Firebase.bom))
     implementation(project(":auth"))
     implementation(project(":auth-compose"))
     implementation(project(":firestore"))

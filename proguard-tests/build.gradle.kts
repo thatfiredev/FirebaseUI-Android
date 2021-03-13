@@ -33,6 +33,7 @@ android {
 }
 
 dependencies {
+    androidTestImplementation(platform(Config.Libs.Firebase.bom))
     implementation(project(":auth"))
     implementation(project(":firestore"))
     implementation(project(":database"))
