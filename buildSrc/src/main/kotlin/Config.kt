@@ -12,7 +12,7 @@ object Config {
     }
 
     object Plugins {
-        const val android = "com.android.tools.build:gradle:7.0.0-alpha09"
+        const val android = "com.android.tools.build:gradle:7.0.0-alpha11"
         const val kotlin = "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
         const val google = "com.google.gms:google-services:4.3.3"
 
@@ -45,7 +45,7 @@ object Config {
 
 
             object Compose {
-                const val composeVersion = "1.0.0-beta02"
+                const val composeVersion = "1.0.0-beta03"
                 const val ui = "androidx.compose.ui:ui:$composeVersion"
                 // Tooling support (Previews, etc.)
                 const val ui_tooling = "androidx.compose.ui:ui-tooling:$composeVersion"
