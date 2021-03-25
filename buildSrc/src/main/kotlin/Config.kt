@@ -111,7 +111,7 @@ object Config {
         }
 
         object Lint {
-            private const val version = "26.5.0"
+            private const val version = "30.0.0-alpha11"
 
             const val api = "com.android.tools.lint:lint-api:$version"
             const val tests = "com.android.tools.lint:lint-tests:$version"

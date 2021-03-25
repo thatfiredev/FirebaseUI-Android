@@ -1,5 +1,6 @@
 package com.firebase.ui.database;
 
+import android.annotation.SuppressLint;
 import android.util.Log;
 
 import com.firebase.ui.common.ChangeEventType;
@@ -53,6 +54,7 @@ public abstract class FirebaseRecyclerAdapter<T, VH extends RecyclerView.ViewHol
         }
     }
 
+    @SuppressLint("NotifyDataSetChanged") // TODO
     @Override
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     public void stopListening() {

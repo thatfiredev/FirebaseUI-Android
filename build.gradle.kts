@@ -109,7 +109,8 @@ fun Project.configureAndroid() {
                     "IntentFilterExportedReceiver",
                     "UnusedResources",
                     "VectorDrawableCompat", // This seems to be a false positive after updating to AGP 7
-                    "AppLinkUrlError"
+                    "AppLinkUrlError",
+                    "RestrictedApi" // Lint wrongly picks up some API usages as illegal in :database
             )
 
             isCheckAllWarnings = true
