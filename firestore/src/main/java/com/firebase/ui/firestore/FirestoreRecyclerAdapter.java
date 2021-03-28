@@ -1,5 +1,6 @@
 package com.firebase.ui.firestore;
 
+import android.annotation.SuppressLint;
 import android.util.Log;
 
 import com.firebase.ui.common.ChangeEventType;
@@ -55,6 +56,7 @@ public abstract class FirestoreRecyclerAdapter<T, VH extends RecyclerView.ViewHo
     /**
      * Stop listening for database changes and clear all items in the adapter.
      */
+    @SuppressLint("NotifyDataSetChanged") // TODO
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     public void stopListening() {
         mSnapshots.removeChangeEventListener(this);
