@@ -159,8 +159,8 @@ public class FirestoreDataSourceTest {
     }
 
     private void initMockQuery() {
-        when(mMockQuery.startAfter(any())).thenReturn(mMockQuery);
-        when(mMockQuery.endBefore(any())).thenReturn(mMockQuery);
+        when(mMockQuery.startAfter(any(DocumentSnapshot.class))).thenReturn(mMockQuery);
+        when(mMockQuery.endBefore(any(DocumentSnapshot.class))).thenReturn(mMockQuery);
         when(mMockQuery.limit(anyLong())).thenReturn(mMockQuery);
     }
 
