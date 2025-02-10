@@ -6,9 +6,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.ui.auth.util.ui.ImeHelper;
@@ -16,6 +13,7 @@ import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.firebase.uidemo.R;
 import com.firebase.uidemo.database.ChatHolder;
+import com.firebase.uidemo.databinding.ActivityChatBinding;
 import com.firebase.uidemo.util.SignInResultNotifier;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.firebase.auth.FirebaseAuth;
@@ -28,9 +26,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import butterknife.BindView;
-import butterknife.ButterKnife;
-import butterknife.OnClick;
 
 /**
  * Class demonstrating how to setup a {@link RecyclerView} with an adapter while taking sign-in
@@ -55,52 +50,31 @@ public class FirestoreChatActivity extends AppCompatActivity
         FirebaseFirestore.setLoggingEnabled(true);
     }
 
-    @BindView(R.id.messagesList)
-    RecyclerView mRecyclerView;
-
-    @BindView(R.id.sendButton)
-    Button mSendButton;
-
-    @BindView(R.id.messageEdit)
-    EditText mMessageEdit;
-
-    @BindView(R.id.emptyTextView)
-    TextView mEmptyListMessage;
+    private ActivityChatBinding mBinding;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_chat);
-        ButterKnife.bind(this);
+        mBinding = ActivityChatBinding.inflate(getLayoutInflater());
+        setContentView(mBinding.getRoot());
 
         LinearLayoutManager manager = new LinearLayoutManager(this);
         manager.setReverseLayout(true);
         manager.setStackFromEnd(true);
 
-        mRecyclerView.setHasFixedSize(true);
-        mRecyclerView.setLayoutManager(manager);
+        mBinding.messagesList.setHasFixedSize(true);
+        mBinding.messagesList.setLayoutManager(manager);
 
-        mRecyclerView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-            @Override
-            public void onLayoutChange(View view, int left, int top, int right, int bottom,
-                                       int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                if (bottom < oldBottom) {
-                    mRecyclerView.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            mRecyclerView.smoothScrollToPosition(0);
-                        }
-                    }, 100);
-                }
+        mBinding.messagesList.addOnLayoutChangeListener((view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (bottom < oldBottom) {
+                mBinding.messagesList.postDelayed(() -> mBinding.messagesList.smoothScrollToPosition(
+                        0), 100);
             }
         });
 
-        ImeHelper.setImeOnDoneListener(mMessageEdit, new ImeHelper.DonePressedListener() {
-            @Override
-            public void onDonePressed() {
-                onSendClick();
-            }
-        });
+        ImeHelper.setImeOnDoneListener(mBinding.messageEdit, () -> onSendClick());
+
+        mBinding.sendButton.setOnClickListener(view -> onSendClick());
     }
 
     @Override
@@ -120,8 +94,8 @@ public class FirestoreChatActivity extends AppCompatActivity
 
     @Override
     public void onAuthStateChanged(@NonNull FirebaseAuth auth) {
-        mSendButton.setEnabled(isSignedIn());
-        mMessageEdit.setEnabled(isSignedIn());
+        mBinding.sendButton.setEnabled(isSignedIn());
+        mBinding.messageEdit.setEnabled(isSignedIn());
 
         if (isSignedIn()) {
             attachRecyclerViewAdapter();
@@ -142,21 +116,20 @@ public class FirestoreChatActivity extends AppCompatActivity
         adapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
             @Override
             public void onItemRangeInserted(int positionStart, int itemCount) {
-                mRecyclerView.smoothScrollToPosition(0);
+                mBinding.messagesList.smoothScrollToPosition(0);
             }
         });
 
-        mRecyclerView.setAdapter(adapter);
+        mBinding.messagesList.setAdapter(adapter);
     }
 
-    @OnClick(R.id.sendButton)
     public void onSendClick() {
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         String name = "User " + uid.substring(0, 6);
 
-        onAddMessage(new Chat(name, mMessageEdit.getText().toString(), uid));
+        onAddMessage(new Chat(name, mBinding.messageEdit.getText().toString(), uid));
 
-        mMessageEdit.setText("");
+        mBinding.messageEdit.setText("");
     }
 
     @NonNull
@@ -183,17 +156,13 @@ public class FirestoreChatActivity extends AppCompatActivity
             @Override
             public void onDataChanged() {
                 // If there are no chat messages, show a view that invites the user to add a message.
-                mEmptyListMessage.setVisibility(getItemCount() == 0 ? View.VISIBLE : View.GONE);
+                mBinding.emptyTextView.setVisibility(getItemCount() == 0 ? View.VISIBLE : View.GONE);
             }
         };
     }
 
     private void onAddMessage(@NonNull Chat chat) {
-        sChatCollection.add(chat).addOnFailureListener(this, new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                Log.e(TAG, "Failed to write message", e);
-            }
-        });
+        sChatCollection.add(chat).addOnFailureListener(this,
+                e -> Log.e(TAG, "Failed to write message", e));
     }
 }

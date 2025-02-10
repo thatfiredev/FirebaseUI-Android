@@ -12,9 +12,8 @@ import android.widget.Toast;
 
 import com.firebase.ui.database.paging.DatabasePagingOptions;
 import com.firebase.ui.database.paging.FirebaseRecyclerPagingAdapter;
-import com.firebase.ui.database.paging.LoadingState;
 import com.firebase.uidemo.R;
-import com.google.firebase.database.DatabaseError;
+import com.firebase.uidemo.databinding.ActivityDatabasePagingBinding;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 
@@ -23,22 +22,17 @@ import java.util.Locale;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.paging.PagedList;
+import androidx.paging.LoadState;
+import androidx.paging.PagingConfig;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-import butterknife.BindView;
-import butterknife.ButterKnife;
 
 public class FirebaseDbPagingActivity extends AppCompatActivity {
 
     private static final String TAG = "PagingActivity";
 
-    @BindView(R.id.paging_recycler)
-    RecyclerView mRecycler;
-
-    @BindView(R.id.swipe_refresh_layout)
-    SwipeRefreshLayout mSwipeRefreshLayout;
+    private ActivityDatabasePagingBinding mBinding;
 
     private FirebaseDatabase mDatabase;
     private Query mQuery;
@@ -46,8 +40,8 @@ public class FirebaseDbPagingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_database_paging);
-        ButterKnife.bind(this);
+        mBinding = ActivityDatabasePagingBinding.inflate(getLayoutInflater());
+        setContentView(mBinding.getRoot());
 
         mDatabase = FirebaseDatabase.getInstance();
         mQuery = mDatabase.getReference().child("items");
@@ -58,11 +52,7 @@ public class FirebaseDbPagingActivity extends AppCompatActivity {
     private void setUpAdapter() {
 
         //Initialize Paging Configurations
-        PagedList.Config config = new PagedList.Config.Builder()
-                .setEnablePlaceholders(false)
-                .setPrefetchDistance(5)
-                .setPageSize(30)
-                .build();
+        PagingConfig config = new PagingConfig(30, 5, false);
 
         //Initialize Firebase Paging Options
         DatabasePagingOptions<Item> options = new DatabasePagingOptions.Builder<Item>()
@@ -88,44 +78,54 @@ public class FirebaseDbPagingActivity extends AppCompatActivity {
                                                     @NonNull Item model) {
                         holder.bind(model);
                     }
-
-                    @Override
-                    protected void onLoadingStateChanged(@NonNull LoadingState state) {
-                        switch (state) {
-                            case LOADING_INITIAL:
-                            case LOADING_MORE:
-                                mSwipeRefreshLayout.setRefreshing(true);
-                                break;
-                            case LOADED:
-                                mSwipeRefreshLayout.setRefreshing(false);
-                                break;
-                            case FINISHED:
-                                mSwipeRefreshLayout.setRefreshing(false);
-                                showToast(getString(R.string.paging_finished_message));
-                                break;
-                            case ERROR:
-                                showToast(getString(R.string.unknown_error));
-                                break;
-                        }
-                    }
-
-                    @Override
-                    protected void onError(DatabaseError databaseError) {
-                        mSwipeRefreshLayout.setRefreshing(false);
-                        Log.e(TAG, databaseError.getDetails(), databaseError.toException());
-                    }
                 };
 
-        mRecycler.setLayoutManager(new LinearLayoutManager(this));
-        mRecycler.setAdapter(mAdapter);
+        mAdapter.addLoadStateListener(states -> {
+            LoadState refresh = states.getRefresh();
+            LoadState append = states.getAppend();
+
+            if (refresh instanceof LoadState.Error) {
+                LoadState.Error loadStateError = (LoadState.Error) refresh;
+                mBinding.swipeRefreshLayout.setRefreshing(false);
+                Log.e(TAG, loadStateError.getError().getLocalizedMessage());
+            }
+            if (append instanceof LoadState.Error) {
+                LoadState.Error loadStateError = (LoadState.Error) append;
+                mBinding.swipeRefreshLayout.setRefreshing(false);
+                Log.e(TAG, loadStateError.getError().getLocalizedMessage());
+            }
+
+            if (append instanceof LoadState.Loading) {
+                mBinding.swipeRefreshLayout.setRefreshing(true);
+            }
+
+            if (append instanceof LoadState.NotLoading) {
+                LoadState.NotLoading notLoading = (LoadState.NotLoading) append;
+                if (notLoading.getEndOfPaginationReached()) {
+                    // This indicates that the user has scrolled
+                    // until the end of the data set.
+                    mBinding.swipeRefreshLayout.setRefreshing(false);
+                    showToast("Reached end of data set.");
+                    return null;
+                }
+
+                if (refresh instanceof LoadState.NotLoading) {
+                    // This indicates the most recent load
+                    // has finished.
+                    mBinding.swipeRefreshLayout.setRefreshing(false);
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        mBinding.pagingRecycler.setLayoutManager(new LinearLayoutManager(this));
+        mBinding.pagingRecycler.setAdapter(mAdapter);
 
         // Reload data on swipe
-        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                //Reload Data
-                mAdapter.refresh();
-            }
+        mBinding.swipeRefreshLayout.setOnRefreshListener(() -> {
+            //Reload Data
+            mAdapter.refresh();
         });
     }
 
@@ -179,16 +179,13 @@ public class FirebaseDbPagingActivity extends AppCompatActivity {
 
     public static class ItemViewHolder extends RecyclerView.ViewHolder {
 
-
-        @BindView(R.id.item_text)
         TextView mTextView;
-
-        @BindView(R.id.item_value)
         TextView mValueView;
 
         ItemViewHolder(@NonNull View itemView) {
             super(itemView);
-            ButterKnife.bind(this, itemView);
+            mTextView = itemView.findViewById(R.id.item_text);
+            mValueView = itemView.findViewById(R.id.item_value);
         }
 
         void bind(@NonNull Item item) {

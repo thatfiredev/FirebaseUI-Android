@@ -242,7 +242,8 @@ public class AuthMethodPickerActivity extends AppCompatBase {
             }
             boolean hasProvider = false;
             for (IdpConfig idpConfig : providerConfigs) {
-                if (providerBtnId.equals(idpConfig.getProviderId())) {
+                String providerId = providerOrEmailLinkProvider(idpConfig.getProviderId());
+                if (providerBtnId.equals(providerId)) {
                     hasProvider = true;
                     break;
                 }
@@ -355,17 +356,14 @@ public class AuthMethodPickerActivity extends AppCompatBase {
                 }
             }
         });
-        view.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (isOffline()) {
-                    Snackbar.make(findViewById(android.R.id.content), getString(R.string.fui_no_internet), Snackbar.LENGTH_SHORT).show();
-                    return;
-                }
-
-                provider.startSignIn(getAuth(), AuthMethodPickerActivity.this,
-                        idpConfig.getProviderId());
+        view.setOnClickListener(view1 -> {
+            if (isOffline()) {
+                Snackbar.make(findViewById(android.R.id.content), getString(R.string.fui_no_internet), Snackbar.LENGTH_SHORT).show();
+                return;
             }
+
+            provider.startSignIn(getAuth(), AuthMethodPickerActivity.this,
+                    idpConfig.getProviderId());
         });
     }
 

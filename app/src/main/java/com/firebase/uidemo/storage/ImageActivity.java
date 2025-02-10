@@ -7,13 +7,12 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.firebase.uidemo.BuildConfig;
 import com.firebase.uidemo.R;
+import com.firebase.uidemo.databinding.ActivityImageBinding;
 import com.firebase.uidemo.util.SignInResultNotifier;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -29,9 +28,6 @@ import java.util.UUID;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import butterknife.BindView;
-import butterknife.ButterKnife;
-import butterknife.OnClick;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.AppSettingsDialog;
 import pub.devrel.easypermissions.EasyPermissions;
@@ -45,20 +41,25 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
 
     private StorageReference mImageRef;
 
-    @BindView(R.id.button_choose_photo)
-    Button mUploadButton;
-
-    @BindView(R.id.button_download_direct)
-    Button mDownloadDirectButton;
-
-    @BindView(R.id.first_image)
-    ImageView mImageView;
+    private ActivityImageBinding mBinding;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_image);
-        ButterKnife.bind(this);
+        mBinding = ActivityImageBinding.inflate(getLayoutInflater());
+        setContentView(mBinding.getRoot());
+
+        mBinding.buttonDownloadDirect.setOnClickListener(view -> {
+            // Download directly from StorageReference using Glide
+            // (See MyAppGlideModule for Loader registration)
+            GlideApp.with(ImageActivity.this)
+                    .load(mImageRef)
+                    .centerCrop()
+                    .transition(DrawableTransitionOptions.withCrossFade())
+                    .into(mBinding.firstImage);
+        });
+
+        mBinding.buttonChoosePhoto.setOnClickListener(view -> choosePhoto());
 
         // By default, Cloud Storage files require authentication to read or write.
         // For this sample to function correctly, enable Anonymous Auth in the Firebase console:
@@ -85,7 +86,6 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         }
     }
 
-    @OnClick(R.id.button_choose_photo)
     @AfterPermissionGranted(RC_IMAGE_PERMS)
     protected void choosePhoto() {
         if (!EasyPermissions.hasPermissions(this, PERMS)) {
@@ -107,51 +107,34 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         String uuid = UUID.randomUUID().toString();
         mImageRef = FirebaseStorage.getInstance().getReference(uuid);
         mImageRef.putFile(uri)
-                .addOnSuccessListener(this, new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                    @Override
-                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                        if (BuildConfig.DEBUG) {
-                            Log.d(TAG, "uploadPhoto:onSuccess:" +
-                                    taskSnapshot.getMetadata().getReference().getPath());
-                        }
-                        Toast.makeText(ImageActivity.this, "Image uploaded",
-                                       Toast.LENGTH_SHORT).show();
+                .addOnSuccessListener(this, taskSnapshot -> {
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "uploadPhoto:onSuccess:" +
+                                taskSnapshot.getMetadata().getReference().getPath());
+                    }
+                    Toast.makeText(ImageActivity.this, "Image uploaded",
+                                   Toast.LENGTH_SHORT).show();
 
-                        showDownloadUI();
-                    }
+                    showDownloadUI();
                 })
-                .addOnFailureListener(this, new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.w(TAG, "uploadPhoto:onError", e);
-                        Toast.makeText(ImageActivity.this, "Upload failed",
-                                       Toast.LENGTH_SHORT).show();
-                    }
+                .addOnFailureListener(this, e -> {
+                    Log.w(TAG, "uploadPhoto:onError", e);
+                    Toast.makeText(ImageActivity.this, "Upload failed",
+                                   Toast.LENGTH_SHORT).show();
                 });
     }
 
-    @OnClick(R.id.button_download_direct)
-    protected void downloadDirect() {
-        // Download directly from StorageReference using Glide
-        // (See MyAppGlideModule for Loader registration)
-        GlideApp.with(this)
-                .load(mImageRef)
-                .centerCrop()
-                .transition(DrawableTransitionOptions.withCrossFade())
-                .into(mImageView);
-    }
-
     private void hideDownloadUI() {
-        mDownloadDirectButton.setEnabled(false);
+        mBinding.buttonDownloadDirect.setEnabled(false);
 
-        mImageView.setImageResource(0);
-        mImageView.setVisibility(View.INVISIBLE);
+        mBinding.firstImage.setImageResource(0);
+        mBinding.firstImage.setVisibility(View.INVISIBLE);
     }
 
     private void showDownloadUI() {
-        mDownloadDirectButton.setEnabled(true);
+        mBinding.buttonDownloadDirect.setEnabled(true);
 
-        mImageView.setVisibility(View.VISIBLE);
+        mBinding.firstImage.setVisibility(View.VISIBLE);
     }
 
     @Override
